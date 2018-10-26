@@ -153,7 +153,7 @@ bool bigint::sign_() noexcept
 {
 	if (data_)
 	{
-		return data_[0] >> 31;
+		return data_[size_ - 1] >> 31;
 	}
 	else
 	{
