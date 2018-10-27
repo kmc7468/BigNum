@@ -41,23 +41,23 @@ namespace _BIGNUM_HAS_NAMESPACE
 #endif
 
 bigint::bigint(const bigint& integer)
-	: size_(integer.size_), capacity_(integer.capacity_), sign_(integer.sign_)
+	: capacity_(integer.capacity_), sign_(integer.sign_)
 {
-	data_ = reinterpret_cast<block_type*>(std::malloc(capacity_));
+	data_ = reinterpret_cast<block_type*>(std::malloc(sizeof(block_type) * capacity_));
 
 	if (!data_)
 	{
-		size_ = capacity_ = 0;
+		capacity_ = 0;
 		throw std::bad_alloc();
 	}
 
-	std::copy(integer.data_, integer.data_ + integer.size_, data_);
+	std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
 }
 bigint::bigint(bigint&& integer) noexcept
-	: data_(integer.data_), size_(integer.size_), capacity_(integer.capacity_), sign_(integer.sign_)
+	: data_(integer.data_), capacity_(integer.capacity_), sign_(integer.sign_)
 {
 	integer.data_ = nullptr;
-	integer.size_ = integer.capacity_ = 0;
+	integer.capacity_ = 0;
 }
 bigint::~bigint()
 {
@@ -68,31 +68,29 @@ bigint& bigint::operator=(const bigint& integer)
 {
 	block_type* const old_data = data_;
 
-	data_ = reinterpret_cast<block_type*>(std::realloc(data_, integer.capacity_));
-	size_ = integer.size_;
+	data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * integer.capacity_));
 	capacity_ = integer.capacity_;
 	sign_ = integer.sign_;
 
 	if (!data_)
 	{
 		std::free(old_data);
-		size_ = capacity_ = 0;
+		capacity_ = 0;
 		throw std::bad_alloc();
 	}
 
-	std::copy(integer.data_, integer.data_ + integer.size_, data_);
+	std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
 
 	return *this;
 }
 bigint& bigint::operator=(bigint&& integer) noexcept
 {
 	data_ = integer.data_;
-	size_ = integer.size_;
 	capacity_ = integer.capacity_;
 	sign_ = integer.sign_;
 
 	integer.data_ = nullptr;
-	integer.size_ = integer.capacity_ = 0;
+	integer.capacity_ = 0;
 
 	return *this;
 }
@@ -102,7 +100,7 @@ void bigint::reset() noexcept
 	std::free(data_);
 
 	data_ = nullptr;
-	size_ = capacity_ = 0;
+	capacity_ = 0;
 	sign_ = false;
 }
 void bigint::swap(bigint& integer) noexcept
@@ -110,7 +108,6 @@ void bigint::swap(bigint& integer) noexcept
 	if (this == &integer) return;
 
 	std::swap(data_, integer.data_);
-	std::swap(size_, integer.size_);
 	std::swap(capacity_, integer.capacity_);
 	std::swap(sign_, integer.sign_);
 }
@@ -121,35 +118,46 @@ void bigint::reserve(std::size_t new_capacity)
 	{
 		block_type* const old_data = data_;
 
-		data_ = reinterpret_cast<block_type*>(std::realloc(data_, new_capacity));
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * new_capacity));
 		capacity_ = new_capacity;
 
 		if (!data_)
 		{
 			std::free(old_data);
-			size_ = capacity_ = 0;
+			capacity_ = 0;
 			throw std::bad_alloc();
 		}
 	}
 }
 void bigint::shrink_to_fit()
 {
-	block_type* const old_data = data_;
-
-	if (size_)
+	if (data_)
 	{
-		data_ = reinterpret_cast<block_type*>(std::realloc(data_, size_));
-		capacity_ = size_;
+		block_type* const old_data = data_;
 
-		if (!data_)
+		for (std::size_t i = capacity_ - 1; i >= 0; --i)
 		{
-			std::free(old_data);
-			size_ = capacity_ = 0;
+			if (data_[i] != 0 && i + 1 != capacity_)
+			{
+				if (!(data_ = reinterpret_cast<block_type*>(std::realloc(data_, capacity_ = i + 1))))
+				{
+					std::free(old_data);
+					capacity_ = 0;
+					throw std::bad_alloc();
+				}
+
+				return;
+			}
+
+			if (i == 0)
+			{
+				std::free(data_);
+				data_ = nullptr;
+				capacity_ = 0;
+
+				return;
+			}
 		}
-	}
-	else
-	{
-		reset();
 	}
 }
 

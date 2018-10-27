@@ -83,7 +83,6 @@ public:
 
 private:
 	block_type* data_ = nullptr;
-	size_type size_ = 0;
 	size_type capacity_ = 0;
 	bool sign_ = false;
 };
