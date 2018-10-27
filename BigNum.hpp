@@ -63,6 +63,10 @@ public:
 
 public:
 	bigint() noexcept = default;
+	bigint(std::int32_t integer);
+	bigint(std::uint32_t integer);
+	bigint(std::int64_t integer);
+	bigint(std::uint64_t integer);
 	bigint(const bigint& integer);
 	bigint(bigint&& integer) noexcept;
 	~bigint();

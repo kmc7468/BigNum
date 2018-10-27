@@ -40,10 +40,86 @@ namespace _BIGNUM_HAS_NAMESPACE
 {
 #endif
 
+bigint::bigint(std::int32_t integer)
+	: capacity_(2)
+{
+	data_ = reinterpret_cast<block_type*>(std::calloc(2, sizeof(block_type)));
+
+	if (!data_)
+	{
+		capacity_ = 0;
+		throw std::bad_alloc();
+	}
+
+	data_[0] = static_cast<block_type>(integer);
+
+	if (integer < 0)
+	{
+		sign_ = true;
+		if ((data_[0] = ~data_[0] + 1) == 0) // Overflow
+		{
+			data_[1] = 1;
+		}
+	}
+}
+bigint::bigint(std::uint32_t integer)
+	: capacity_(1)
+{
+	data_ = reinterpret_cast<block_type*>(std::calloc(1, sizeof(block_type)));
+
+	if (!data_)
+	{
+		capacity_ = 0;
+		throw std::bad_alloc();
+	}
+
+	*data_ = integer;
+}
+bigint::bigint(std::int64_t integer)
+	: capacity_(3)
+{
+	data_ = reinterpret_cast<block_type*>(std::calloc(3, sizeof(block_type)));
+
+	if (!data_)
+	{
+		capacity_ = 0;
+		throw std::bad_alloc();
+	}
+
+	data_[0] = static_cast<block_type>(static_cast<std::uint64_t>(integer) & 0xFFFFFFFF);
+	data_[1] = static_cast<block_type>(static_cast<std::uint64_t>(integer) >> 32);
+
+	if (integer < 0)
+	{
+		sign_ = true;
+		data_[1] = ~data_[1];
+		if ((data_[0] = ~data_[0] + 1) == 0) // Overflow
+		{
+			if ((data_[1] += 1) == 0) // Overflow
+			{
+				data_[2] = 1;
+			}
+		}
+	}
+}
+bigint::bigint(std::uint64_t integer)
+	: capacity_(2)
+{
+	data_ = reinterpret_cast<block_type*>(std::calloc(2, sizeof(block_type)));
+
+	if (!data_)
+	{
+		capacity_ = 0;
+		throw std::bad_alloc();
+	}
+
+	data_[0] = static_cast<block_type>(integer & 0xFFFFFFFF);
+	data_[1] = static_cast<block_type>(integer >> 32);
+}
 bigint::bigint(const bigint& integer)
 	: capacity_(integer.capacity_), sign_(integer.sign_)
 {
-	data_ = reinterpret_cast<block_type*>(std::malloc(sizeof(block_type) * capacity_));
+	data_ = reinterpret_cast<block_type*>(std::calloc(capacity_, sizeof(block_type)));
 
 	if (!data_)
 	{
@@ -66,20 +142,31 @@ bigint::~bigint()
 
 bigint& bigint::operator=(const bigint& integer)
 {
-	block_type* const old_data = data_;
-
-	data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * integer.capacity_));
-	capacity_ = integer.capacity_;
-	sign_ = integer.sign_;
-
-	if (!data_)
+	if (capacity_ < integer.capacity_)
 	{
-		std::free(old_data);
-		capacity_ = 0;
-		throw std::bad_alloc();
-	}
+		block_type* const old_data = data_;
+		const std::size_t old_capacity = capacity_;
 
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * integer.capacity_));
+		capacity_ = integer.capacity_;
+
+		if (!data_)
+		{
+			std::free(old_data);
+			capacity_ = 0;
+			throw std::bad_alloc();
+		}
+
+		std::fill(data_ + old_capacity, data_ + capacity_, 0);
+	}
+		
+	sign_ = integer.sign_;
 	std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+
+	if (capacity_ > integer.capacity_)
+	{
+		std::fill(data_ + integer.capacity_, data_ + capacity_, 0);
+	}
 
 	return *this;
 }
@@ -117,6 +204,7 @@ void bigint::reserve(std::size_t new_capacity)
 	if (new_capacity > capacity_)
 	{
 		block_type* const old_data = data_;
+		const std::size_t old_capacity = capacity_;
 
 		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * new_capacity));
 		capacity_ = new_capacity;
@@ -127,6 +215,8 @@ void bigint::reserve(std::size_t new_capacity)
 			capacity_ = 0;
 			throw std::bad_alloc();
 		}
+
+		std::fill(data_ + old_capacity, data_ + capacity_, 0);
 	}
 }
 void bigint::shrink_to_fit()
