@@ -78,9 +78,6 @@ public:
 	void reserve(std::size_t new_capacity);
 	void shrink_to_fit();
 
-private:
-	bool sign_() noexcept;
-
 public:
 	size_type capacity() const noexcept;
 
@@ -88,6 +85,7 @@ private:
 	block_type* data_ = nullptr;
 	size_type size_ = 0;
 	size_type capacity_ = 0;
+	bool sign_ = false;
 };
 
 #ifdef _BIGNUM_HAS_NAMESPACE

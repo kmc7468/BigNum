@@ -41,7 +41,7 @@ namespace _BIGNUM_HAS_NAMESPACE
 #endif
 
 bigint::bigint(const bigint& integer)
-	: size_(integer.size_), capacity_(integer.capacity_)
+	: size_(integer.size_), capacity_(integer.capacity_), sign_(integer.sign_)
 {
 	data_ = reinterpret_cast<block_type*>(std::malloc(capacity_));
 
@@ -54,7 +54,7 @@ bigint::bigint(const bigint& integer)
 	std::copy(integer.data_, integer.data_ + integer.size_, data_);
 }
 bigint::bigint(bigint&& integer) noexcept
-	: data_(integer.data_), size_(integer.size_), capacity_(integer.capacity_)
+	: data_(integer.data_), size_(integer.size_), capacity_(integer.capacity_), sign_(integer.sign_)
 {
 	integer.data_ = nullptr;
 	integer.size_ = integer.capacity_ = 0;
@@ -71,6 +71,7 @@ bigint& bigint::operator=(const bigint& integer)
 	data_ = reinterpret_cast<block_type*>(std::realloc(data_, integer.capacity_));
 	size_ = integer.size_;
 	capacity_ = integer.capacity_;
+	sign_ = integer.sign_;
 
 	if (!data_)
 	{
@@ -88,6 +89,7 @@ bigint& bigint::operator=(bigint&& integer) noexcept
 	data_ = integer.data_;
 	size_ = integer.size_;
 	capacity_ = integer.capacity_;
+	sign_ = integer.sign_;
 
 	integer.data_ = nullptr;
 	integer.size_ = integer.capacity_ = 0;
@@ -101,6 +103,7 @@ void bigint::reset() noexcept
 
 	data_ = nullptr;
 	size_ = capacity_ = 0;
+	sign_ = false;
 }
 void bigint::swap(bigint& integer) noexcept
 {
@@ -109,6 +112,7 @@ void bigint::swap(bigint& integer) noexcept
 	std::swap(data_, integer.data_);
 	std::swap(size_, integer.size_);
 	std::swap(capacity_, integer.capacity_);
+	std::swap(sign_, integer.sign_);
 }
 
 void bigint::reserve(std::size_t new_capacity)
@@ -146,18 +150,6 @@ void bigint::shrink_to_fit()
 	else
 	{
 		reset();
-	}
-}
-
-bool bigint::sign_() noexcept
-{
-	if (data_)
-	{
-		return data_[size_ - 1] >> 31;
-	}
-	else
-	{
-		return false;
 	}
 }
 
