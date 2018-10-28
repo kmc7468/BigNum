@@ -75,6 +75,8 @@ public:
 public:
 	bigint& operator=(const bigint& integer);
 	bigint& operator=(bigint&& integer) noexcept;
+	bool operator==(const bigint& integer) const noexcept;
+	bool operator!=(const bigint& integer) const noexcept;
 
 public:
 	void reset() noexcept;

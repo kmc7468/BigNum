@@ -207,6 +207,52 @@ bigint& bigint::operator=(bigint&& integer) noexcept
 
 	return *this;
 }
+bool bigint::operator==(const bigint& integer) const noexcept
+{
+	if (this == &integer) return true;
+	if (data_ == integer.data_ && data_ == nullptr) return true;
+
+	const size_type min_capacity = std::min(capacity_, integer.capacity_);
+
+	for (size_type i = 0; i < min_capacity; ++i)
+	{
+		if (data_[i] != integer.data_[i]) return false;
+	}
+
+	const size_type other_capacity = std::max(capacity_, integer.capacity_) - min_capacity;
+	block_type* other_data = capacity_ > integer.capacity_ ? data_ : integer.data_;
+	block_type* const other_data_end = other_data + other_capacity;
+
+	for (; other_data < other_data_end; ++other_data)
+	{
+		if (*other_data != 0) return false;
+	}
+
+	return true;
+}
+bool bigint::operator!=(const bigint& integer) const noexcept
+{
+	if (this == &integer) return false;
+	if (data_ == integer.data_ && data_ == nullptr) return false;
+
+	const size_type min_capacity = std::min(capacity_, integer.capacity_);
+
+	for (size_type i = 0; i < min_capacity; ++i)
+	{
+		if (data_[i] == integer.data_[i]) return false;
+	}
+
+	const size_type other_capacity = std::max(capacity_, integer.capacity_) - min_capacity;
+	block_type* other_data = capacity_ > integer.capacity_ ? data_ : integer.data_;
+	block_type* const other_data_end = other_data + other_capacity;
+
+	for (; other_data < other_data_end; ++other_data)
+	{
+		if (*other_data != 0) return true;
+	}
+
+	return false;
+}
 
 void bigint::reset() noexcept
 {
