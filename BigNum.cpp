@@ -170,16 +170,15 @@ bigint& bigint::operator=(const bigint& integer)
 	if (capacity_ < integer.capacity_)
 	{
 		block_type* const old_data = data_;
-		const std::size_t old_capacity = capacity_;
+		const size_type old_capacity = capacity_;
 
 		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * integer.capacity_));
 		capacity_ = integer.capacity_;
 
 		if (!data_)
 		{
-			std::free(old_data);
-			capacity_ = 0;
-			sign_ = false;
+			data_ = old_data;
+			capacity_ = old_capacity;
 			throw std::bad_alloc();
 		}
 
@@ -226,21 +225,20 @@ void bigint::swap(bigint& integer) noexcept
 	std::swap(sign_, integer.sign_);
 }
 
-void bigint::reserve(std::size_t new_capacity)
+void bigint::reserve(size_type new_capacity)
 {
 	if (new_capacity > capacity_)
 	{
 		block_type* const old_data = data_;
-		const std::size_t old_capacity = capacity_;
+		const size_type old_capacity = capacity_;
 
 		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * new_capacity));
 		capacity_ = new_capacity;
 
 		if (!data_)
 		{
-			std::free(old_data);
-			capacity_ = 0;
-			sign_ = false;
+			data_ = old_data;
+			capacity_ = old_capacity;
 			throw std::bad_alloc();
 		}
 
@@ -252,16 +250,16 @@ void bigint::shrink_to_fit()
 	if (data_)
 	{
 		block_type* const old_data = data_;
+		const size_type old_capacity = capacity_;
 
-		for (std::size_t i = capacity_ - 1; i >= 0; --i)
+		for (size_type i = capacity_ - 1; i >= 0; --i)
 		{
 			if (data_[i] != 0 && i + 1 != capacity_)
 			{
 				if (!(data_ = reinterpret_cast<block_type*>(std::realloc(data_, capacity_ = i + 1))))
 				{
-					std::free(old_data);
-					capacity_ = 0;
-					sign_ = false;
+					data_ = old_data;
+					capacity_ = old_capacity;
 					throw std::bad_alloc();
 				}
 

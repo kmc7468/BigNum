@@ -80,7 +80,7 @@ public:
 	void reset() noexcept;
 	void swap(bigint& integer) noexcept;
 
-	void reserve(std::size_t new_capacity);
+	void reserve(size_type new_capacity);
 	void shrink_to_fit();
 
 public:
