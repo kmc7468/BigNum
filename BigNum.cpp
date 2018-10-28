@@ -228,7 +228,7 @@ bool bigint::operator==(const bigint& integer) const noexcept
 		if (*other_data != 0) return false;
 	}
 
-	return true;
+	return sign_ == integer.sign_;
 }
 bool bigint::operator!=(const bigint& integer) const noexcept
 {
@@ -251,7 +251,7 @@ bool bigint::operator!=(const bigint& integer) const noexcept
 		if (*other_data != 0) return true;
 	}
 
-	return false;
+	return sign_ != integer.sign_;
 }
 
 void bigint::reset() noexcept
