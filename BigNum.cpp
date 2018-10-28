@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <new>
+#include <stdexcept>
 
 /////////////////////////////////////////////////////////////////
 ///// Definitions
@@ -124,16 +125,40 @@ bigint::bigint(const bigint& integer)
 	if (!data_)
 	{
 		capacity_ = 0;
+		sign_ = false;
 		throw std::bad_alloc();
 	}
 
 	std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+}
+bigint::bigint(const bigint& integer, size_type new_capacity)
+	: capacity_(new_capacity), sign_(integer.sign_)
+{
+	if (capacity_ < integer.capacity_)
+	{
+		capacity_ = 0;
+		sign_ = false;
+		throw std::invalid_argument("new_capacity < integer.capacity()");
+	}
+
+	data_ = reinterpret_cast<block_type*>(std::calloc(capacity_, sizeof(block_type)));
+
+	if (!data_)
+	{
+		capacity_ = 0;
+		sign_ = false;
+		throw std::bad_alloc();
+	}
+
+	std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+	std::fill(data_ + integer.capacity_, data_ + capacity_, 0);
 }
 bigint::bigint(bigint&& integer) noexcept
 	: data_(integer.data_), capacity_(integer.capacity_), sign_(integer.sign_)
 {
 	integer.data_ = nullptr;
 	integer.capacity_ = 0;
+	integer.sign_ = false;
 }
 bigint::~bigint()
 {
@@ -154,6 +179,7 @@ bigint& bigint::operator=(const bigint& integer)
 		{
 			std::free(old_data);
 			capacity_ = 0;
+			sign_ = false;
 			throw std::bad_alloc();
 		}
 
@@ -178,6 +204,7 @@ bigint& bigint::operator=(bigint&& integer) noexcept
 
 	integer.data_ = nullptr;
 	integer.capacity_ = 0;
+	integer.sign_ = false;
 
 	return *this;
 }
@@ -213,6 +240,7 @@ void bigint::reserve(std::size_t new_capacity)
 		{
 			std::free(old_data);
 			capacity_ = 0;
+			sign_ = false;
 			throw std::bad_alloc();
 		}
 
@@ -233,6 +261,7 @@ void bigint::shrink_to_fit()
 				{
 					std::free(old_data);
 					capacity_ = 0;
+					sign_ = false;
 					throw std::bad_alloc();
 				}
 
@@ -244,6 +273,7 @@ void bigint::shrink_to_fit()
 				std::free(data_);
 				data_ = nullptr;
 				capacity_ = 0;
+				sign_ = false;
 
 				return;
 			}

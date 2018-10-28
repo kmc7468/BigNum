@@ -68,6 +68,7 @@ public:
 	bigint(std::int64_t integer);
 	bigint(std::uint64_t integer);
 	bigint(const bigint& integer);
+	bigint(const bigint& integer, size_type new_capacity);
 	bigint(bigint&& integer) noexcept;
 	~bigint();
 
