@@ -253,6 +253,19 @@ bool bigint::operator!=(const bigint& integer) const noexcept
 
 	return sign_ != integer.sign_;
 }
+bigint& bigint::operator+=(const bigint& integer)
+{
+	if (sign_ != integer.sign_)
+	{
+		// TODO: sub_unsigned
+	}
+	else
+	{
+		add_unsigned(integer);
+	}
+
+	return *this;
+}
 
 void bigint::reset() noexcept
 {
@@ -322,6 +335,75 @@ void bigint::shrink_to_fit()
 				return;
 			}
 		}
+	}
+}
+
+void bigint::add_unsigned(const bigint& integer)
+{
+	const bigint* smaller;
+	const bigint* larger;
+	if (capacity_ > integer.capacity_)
+	{
+		larger = this;
+		smaller = &integer;
+	}
+	else
+	{
+		larger = &integer;
+		smaller = this;
+	}
+
+	const size_t limit = smaller->capacity_;
+	bool carry = false;
+	block_type preserved;
+	for (size_t i = 0; i < limit; ++i)
+	{
+		preserved = smaller->data_[i];
+		data_[i] = preserved + larger->data_[i];
+		carry = (data_[i] < preserved) || !(larger->data_[i] + 1);
+	}
+
+	if (carry)
+	{
+		size_t carry_end = limit;
+		while (!(larger->data_[carry_end++] + 1));
+
+		const bool carry_exceeds = larger->capacity_ < carry_end;
+		size_t new_capacity = larger->capacity_ + carry_exceeds;
+		block_type* const old_data = data_;
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * new_capacity));
+		if (!data_)
+		{
+			data_ = old_data;
+			throw std::bad_alloc();
+		}
+		capacity_ = new_capacity;
+
+		std::fill(data_ + limit, data_ + carry_end, 0);
+		if (carry_exceeds)
+		{
+			data_[carry_end] = 1;
+		}
+		else
+		{
+			if (this != larger)
+			{
+				std::copy(data_ + carry_end, data_ + larger->capacity_, larger->data_);
+			}
+			++data_[carry_end];
+		}
+	}
+	else if (capacity_ < larger->capacity_)
+	{
+		block_type* const old_data = data_;
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * larger->capacity_));
+		if (!data_)
+		{
+			data_ = old_data;
+			throw std::bad_alloc();
+		}
+		capacity_ = larger->capacity_;
+		std::copy(data_ + limit, data_ + capacity_, larger->data_);
 	}
 }
 

@@ -77,6 +77,7 @@ public:
 	bigint& operator=(bigint&& integer) noexcept;
 	bool operator==(const bigint& integer) const noexcept;
 	bool operator!=(const bigint& integer) const noexcept;
+	bigint& operator+=(const bigint& integer);
 
 public:
 	void reset() noexcept;
@@ -84,6 +85,9 @@ public:
 
 	void reserve(size_type new_capacity);
 	void shrink_to_fit();
+
+private:
+	void add_unsigned(const bigint& integer);
 
 public:
 	size_type capacity() const noexcept;
