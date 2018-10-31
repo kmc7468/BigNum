@@ -379,6 +379,26 @@ void bigint::shrink_to_fit()
 
 void bigint::add_unsigned_(const bigint& integer)
 {
+	if (!capacity_)
+	{
+		if (!integer.capacity_) return;
+
+		capacity_ = integer.capacity_;
+		sign_ = integer.sign_;
+		data_ = reinterpret_cast<block_type*>(std::malloc(sizeof(block_type) * capacity_));
+
+		if (!data_)
+		{
+			capacity_ = 0;
+			sign_ = false;
+			throw std::bad_alloc();
+		}
+
+		std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+		return;
+	}
+	else if (!integer.capacity_) return;
+
 	const bigint* smaller;
 	const bigint* larger;
 
