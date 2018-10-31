@@ -87,7 +87,7 @@ public:
 	void shrink_to_fit();
 
 private:
-	void add_unsigned(const bigint& integer);
+	void add_unsigned_(const bigint& integer);
 
 public:
 	size_type capacity() const noexcept;

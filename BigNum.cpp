@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
 #include <new>
 #include <stdexcept>
 
@@ -42,9 +43,9 @@ namespace _BIGNUM_HAS_NAMESPACE
 #endif
 
 bigint::bigint(std::int32_t integer)
-	: capacity_(2)
+	: capacity_(integer == std::numeric_limits<std::int32_t>::min() ? 2 : 1)
 {
-	data_ = reinterpret_cast<block_type*>(std::calloc(2, sizeof(block_type)));
+	data_ = reinterpret_cast<block_type*>(std::calloc(capacity_, sizeof(block_type)));
 
 	if (!data_)
 	{
@@ -77,9 +78,9 @@ bigint::bigint(std::uint32_t integer)
 	*data_ = integer;
 }
 bigint::bigint(std::int64_t integer)
-	: capacity_(3)
+	: capacity_(integer == std::numeric_limits<std::int32_t>::min() ? 3 : 2)
 {
-	data_ = reinterpret_cast<block_type*>(std::calloc(3, sizeof(block_type)));
+	data_ = reinterpret_cast<block_type*>(std::calloc(capacity_, sizeof(block_type)));
 
 	if (!data_)
 	{
@@ -255,13 +256,13 @@ bool bigint::operator!=(const bigint& integer) const noexcept
 }
 bigint& bigint::operator+=(const bigint& integer)
 {
-	if (sign_ != integer.sign_)
+	if (sign_ == integer.sign_)
 	{
-		// TODO: sub_unsigned
+		add_unsigned_(integer);
 	}
 	else
 	{
-		add_unsigned(integer);
+		// TODO: sub_unsigned
 	}
 
 	return *this;
@@ -338,10 +339,11 @@ void bigint::shrink_to_fit()
 	}
 }
 
-void bigint::add_unsigned(const bigint& integer)
+void bigint::add_unsigned_(const bigint& integer)
 {
 	const bigint* smaller;
 	const bigint* larger;
+
 	if (capacity_ > integer.capacity_)
 	{
 		larger = this;
@@ -353,57 +355,58 @@ void bigint::add_unsigned(const bigint& integer)
 		smaller = this;
 	}
 
-	const size_t limit = smaller->capacity_;
+	const size_type limit = smaller->capacity_;
+
 	bool carry = false;
 	block_type preserved;
-	for (size_t i = 0; i < limit; ++i)
+
+	for (size_type i = 0; i < limit; ++i)
 	{
 		preserved = smaller->data_[i];
-		data_[i] = preserved + larger->data_[i];
+		data_[i] = preserved + larger->data_[i] + carry;
 		carry = (data_[i] < preserved) || !(larger->data_[i] + 1);
+	}
+
+	block_type* const old_data = data_;
+	const size_type old_capacity = capacity_;
+
+	if (capacity_ < larger->capacity_)
+	{
+		capacity_ = (carry && larger->data_[larger->capacity_ - 1]) ? (larger->capacity_ + 1) : larger->capacity_;
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * capacity_));
+
+		if (!data_)
+		{
+			data_ = old_data;
+			capacity_ = old_capacity;
+			throw std::bad_alloc();
+		}
+
+		data_[capacity_ - 1] = 0;
+		std::copy(data_ + limit, data_ + capacity_, larger->data_ + limit);
+	}
+	else if (carry)
+	{
+		capacity_ += 1;
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * capacity_));
+
+		if (!data_)
+		{
+			data_ = old_data;
+			capacity_ = old_capacity;
+			throw std::bad_alloc();
+		}
+
+		data_[capacity_ - 1] = 0;
 	}
 
 	if (carry)
 	{
-		size_t carry_end = limit;
-		while (!(larger->data_[carry_end++] + 1));
-
-		const bool carry_exceeds = larger->capacity_ < carry_end;
-		size_t new_capacity = larger->capacity_ + carry_exceeds;
-		block_type* const old_data = data_;
-		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * new_capacity));
-		if (!data_)
+		for (size_type i = limit; i < capacity_; ++i)
 		{
-			data_ = old_data;
-			throw std::bad_alloc();
+			data_[i] += 1;
+			if (data_[i]) break;
 		}
-		capacity_ = new_capacity;
-
-		std::fill(data_ + limit, data_ + carry_end, 0);
-		if (carry_exceeds)
-		{
-			data_[carry_end] = 1;
-		}
-		else
-		{
-			if (this != larger)
-			{
-				std::copy(data_ + carry_end, data_ + larger->capacity_, larger->data_);
-			}
-			++data_[carry_end];
-		}
-	}
-	else if (capacity_ < larger->capacity_)
-	{
-		block_type* const old_data = data_;
-		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * larger->capacity_));
-		if (!data_)
-		{
-			data_ = old_data;
-			throw std::bad_alloc();
-		}
-		capacity_ = larger->capacity_;
-		std::copy(data_ + limit, data_ + capacity_, larger->data_);
 	}
 }
 
