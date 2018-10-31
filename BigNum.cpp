@@ -121,16 +121,19 @@ bigint::bigint(std::uint64_t integer)
 bigint::bigint(const bigint& integer)
 	: capacity_(integer.capacity_), sign_(integer.sign_)
 {
-	data_ = reinterpret_cast<block_type*>(std::calloc(capacity_, sizeof(block_type)));
-
-	if (!data_)
+	if (integer.capacity_)
 	{
-		capacity_ = 0;
-		sign_ = false;
-		throw std::bad_alloc();
-	}
+		data_ = reinterpret_cast<block_type*>(std::calloc(capacity_, sizeof(block_type)));
 
-	std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+		if (!data_)
+		{
+			capacity_ = 0;
+			sign_ = false;
+			throw std::bad_alloc();
+		}
+
+		std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+	}
 }
 bigint::bigint(const bigint& integer, size_type new_capacity)
 	: capacity_(new_capacity), sign_(integer.sign_)
@@ -270,6 +273,37 @@ bigint& bigint::operator+=(const bigint& integer)
 	}
 
 	return *this;
+}
+bigint& bigint::operator++()
+{
+	if (capacity_)
+	{
+		for (size_type i = 0; i < capacity_; ++i)
+		{
+			data_[i] += 1;
+			if (data_[i]) break;
+		}
+	}
+	else
+	{
+		capacity_ = 1;
+		data_ = reinterpret_cast<block_type*>(std::calloc(1, sizeof(block_type)));
+
+		if (!data_)
+		{
+			capacity_ = 0;
+			throw std::bad_alloc();
+		}
+
+		*data_ = 1;
+	}
+
+	return *this;
+}
+bigint bigint::operator++(int)
+{
+	bigint ret = *this;
+	return ++(*this), ret;
 }
 
 void bigint::reset() noexcept

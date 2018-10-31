@@ -79,6 +79,8 @@ public:
 	bool operator!=(const bigint& integer) const noexcept;
 	bigint operator+(const bigint& integer) const;
 	bigint& operator+=(const bigint& integer);
+	bigint& operator++();
+	bigint operator++(int);
 
 public:
 	void reset() noexcept;
