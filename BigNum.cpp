@@ -254,6 +254,10 @@ bool bigint::operator!=(const bigint& integer) const noexcept
 
 	return sign_ != integer.sign_;
 }
+bigint bigint::operator+(const bigint& integer) const
+{
+	return bigint(*this) += integer;
+}
 bigint& bigint::operator+=(const bigint& integer)
 {
 	if (sign_ == integer.sign_)
