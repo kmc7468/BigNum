@@ -377,6 +377,18 @@ void bigint::shrink_to_fit()
 	}
 }
 
+bool bigint::zero() const noexcept
+{
+	if (capacity_ == 0) return true;
+
+	for (size_type i = 0; i < capacity_; ++i)
+	{
+		if (data_[i]) return false;
+	}
+
+	return true;
+}
+
 void bigint::add_unsigned_(const bigint& integer)
 {
 	if (!capacity_)

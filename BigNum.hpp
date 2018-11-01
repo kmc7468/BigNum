@@ -89,6 +89,8 @@ public:
 	void reserve(size_type new_capacity);
 	void shrink_to_fit();
 
+	bool zero() const noexcept;
+
 private:
 	void add_unsigned_(const bigint& integer);
 
