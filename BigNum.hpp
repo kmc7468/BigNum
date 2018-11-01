@@ -90,12 +90,17 @@ public:
 	void shrink_to_fit();
 
 	bool zero() const noexcept;
+	bool positive() const noexcept;
+	bool negative() const noexcept;
 
 private:
 	void add_unsigned_(const bigint& integer);
 
 public:
+	const block_type* data() const noexcept;
+	block_type* data() noexcept;
 	size_type capacity() const noexcept;
+	bool sign() const noexcept;
 
 private:
 	block_type* data_ = nullptr;

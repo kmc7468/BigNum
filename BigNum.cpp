@@ -388,6 +388,14 @@ bool bigint::zero() const noexcept
 
 	return true;
 }
+bool bigint::positive() const noexcept
+{
+	return !sign_ && !zero();
+}
+bool bigint::negative() const noexcept
+{
+	return sign_;
+}
 
 void bigint::add_unsigned_(const bigint& integer)
 {
@@ -480,9 +488,21 @@ void bigint::add_unsigned_(const bigint& integer)
 	}
 }
 
+const bigint::block_type* bigint::data() const noexcept
+{
+	return data_;
+}
+bigint::block_type* bigint::data() noexcept
+{
+	return data_;
+}
 bigint::size_type bigint::capacity() const noexcept
 {
 	return capacity_;
+}
+bool bigint::sign() const noexcept
+{
+	return sign_;
 }
 
 #ifdef _BIGNUM_HAS_NAMESPACE
