@@ -81,6 +81,8 @@ public:
 	bigint& operator+=(const bigint& integer);
 	bigint& operator++();
 	bigint operator++(int);
+	bigint operator-(const bigint& integer) const;
+	bigint& operator-=(const bigint& integer);
 
 public:
 	void reset() noexcept;
@@ -95,6 +97,7 @@ public:
 
 private:
 	void add_unsigned_(const bigint& integer);
+	void sub_unsigned_(const bigint& integer);
 
 public:
 	const block_type* data() const noexcept;

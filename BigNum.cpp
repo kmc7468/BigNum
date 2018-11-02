@@ -32,6 +32,7 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <utility>
 
 /////////////////////////////////////////////////////////////////
 ///// Definitions
@@ -310,6 +311,23 @@ bigint bigint::operator++(int)
 	bigint ret = *this;
 	return ++(*this), ret;
 }
+bigint bigint::operator-(const bigint& integer) const
+{
+	return bigint(*this) -= integer;
+}
+bigint& bigint::operator-=(const bigint& integer)
+{
+	if (sign_ == integer.sign_)
+	{
+		sub_unsigned_(integer);
+	}
+	else
+	{
+		add_unsigned_(integer);
+	}
+
+	return *this;
+}
 
 void bigint::reset() noexcept
 {
@@ -359,7 +377,7 @@ void bigint::shrink_to_fit()
 		{
 			if (data_[i] != 0 && i + 1 != capacity_)
 			{
-				if (!(data_ = reinterpret_cast<block_type*>(std::realloc(data_, capacity_ = i + 1))))
+				if (!(data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * (capacity_ = i + 1)))))
 				{
 					data_ = old_data;
 					capacity_ = old_capacity;
@@ -490,6 +508,83 @@ void bigint::add_unsigned_(const bigint& integer)
 			data_[i] += 1;
 			if (data_[i]) break;
 		}
+	}
+}
+void bigint::sub_unsigned_(const bigint& integer)
+{
+	if (!capacity_)
+	{
+		if (!integer.capacity_) return;
+
+		capacity_ = integer.capacity_;
+		data_ = reinterpret_cast<block_type*>(std::malloc(sizeof(block_type) * capacity_));
+
+		if (!data_)
+		{
+			capacity_ = 0;
+			throw std::bad_alloc();
+		}
+
+		sign_ = !integer.sign_;
+		std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
+
+		if (zero())
+		{
+			sign_ = false;
+		}
+
+		return;
+	}
+	else if (!integer.capacity_) return;
+
+	const size_type limit = std::min(capacity_, integer.capacity_);
+
+	bool borrow = false;
+	std::int64_t preserved;
+
+	for (size_type i = 0; i < limit; ++i)
+	{
+		preserved = static_cast<std::int64_t>(data_[i]) - integer.data_[i] - borrow;
+		borrow = preserved < 0 ? ((preserved = -preserved), true) : false;
+		data_[i] = static_cast<block_type>(preserved);
+	}
+
+	if (capacity_ < integer.capacity_)
+	{
+		block_type* const old_data = data_;
+		const size_type old_capacity = capacity_;
+
+		capacity_ = integer.capacity_;
+		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * capacity_));
+
+		if (!data_)
+		{
+			data_ = old_data;
+			capacity_ = old_capacity;
+			throw std::bad_alloc();
+		}
+				
+		for (size_type i = limit; i < capacity_; ++i)
+		{
+			preserved = static_cast<std::int64_t>(integer.data_[i]) + borrow;
+			borrow = preserved < 0 ? ((preserved = -preserved), true) : false;
+			data_[i] = static_cast<block_type>(preserved);
+		}
+
+		if (borrow)
+		{
+			sign_ = !sign_;
+		}
+	}
+	else if (borrow && capacity_ >= 2)
+	{
+		for (size_type i = 0; i < capacity_ - 1; ++i)
+		{
+			data_[i] = std::numeric_limits<block_type>::max() - data_[i] + 1;
+		}
+		data_[capacity_ - 1] -= 1;
+
+		sign_ = !sign_;
 	}
 }
 
