@@ -283,6 +283,11 @@ bigint& bigint::operator++()
 			data_[i] += 1;
 			if (data_[i]) break;
 		}
+
+		if (sign_ && zero())
+		{
+			sign_ = false;
+		}
 	}
 	else
 	{
@@ -404,15 +409,15 @@ void bigint::add_unsigned_(const bigint& integer)
 		if (!integer.capacity_) return;
 
 		capacity_ = integer.capacity_;
-		sign_ = integer.sign_;
 		data_ = reinterpret_cast<block_type*>(std::malloc(sizeof(block_type) * capacity_));
 
 		if (!data_)
 		{
 			capacity_ = 0;
-			sign_ = false;
 			throw std::bad_alloc();
 		}
+
+		sign_ = integer.sign_;
 
 		std::copy(integer.data_, integer.data_ + integer.capacity_, data_);
 		return;
