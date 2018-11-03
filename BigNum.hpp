@@ -87,6 +87,8 @@ public:
 	bigint operator++(int);
 	bigint operator-(const bigint& integer) const;
 	bigint& operator-=(const bigint& integer);
+	bool operator!() const noexcept;
+	explicit operator bool() const noexcept;
 
 public:
 	void reset() noexcept;

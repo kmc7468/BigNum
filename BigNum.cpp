@@ -297,7 +297,7 @@ bool bigint::operator>(const bigint& integer) const noexcept
 
 	const size_type limit = smaller->capacity_;
 
-	bool result;
+	bool result = false;
 
 	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
 	{
@@ -368,7 +368,7 @@ bool bigint::operator>=(const bigint& integer) const noexcept
 
 	const size_type limit = smaller->capacity_;
 
-	bool result;
+	bool result = false;
 
 	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
 	{
@@ -439,7 +439,7 @@ bool bigint::operator<(const bigint& integer) const noexcept
 
 	const size_type limit = smaller->capacity_;
 
-	bool result;
+	bool result = false;
 
 	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
 	{
@@ -510,7 +510,7 @@ bool bigint::operator<=(const bigint& integer) const noexcept
 
 	const size_type limit = smaller->capacity_;
 
-	bool result;
+	bool result = false;
 
 	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
 	{
@@ -611,6 +611,14 @@ bigint& bigint::operator-=(const bigint& integer)
 	}
 
 	return *this;
+}
+bool bigint::operator!() const noexcept
+{
+	return zero();
+}
+bigint::operator bool() const noexcept
+{
+	return !zero();
 }
 
 void bigint::reset() noexcept
