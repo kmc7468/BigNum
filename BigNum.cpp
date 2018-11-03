@@ -565,7 +565,7 @@ bigint& bigint::operator++()
 	{
 		for (size_type i = 0; i < capacity_; ++i)
 		{
-			data_[i] += 1;
+			data_[i] += 1 - (sign_ << 1);
 			if (data_[i]) break;
 		}
 
