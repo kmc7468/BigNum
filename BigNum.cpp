@@ -225,7 +225,7 @@ bool bigint::operator==(const bigint& integer) const noexcept
 	}
 
 	const size_type other_capacity = std::max(capacity_, integer.capacity_) - min_capacity;
-	block_type* other_data = capacity_ > integer.capacity_ ? data_ : integer.data_;
+	block_type* other_data = (capacity_ > integer.capacity_ ? data_ : integer.data_) + min_capacity;
 	block_type* const other_data_end = other_data + other_capacity;
 
 	for (; other_data < other_data_end; ++other_data)
@@ -244,11 +244,11 @@ bool bigint::operator!=(const bigint& integer) const noexcept
 
 	for (size_type i = 0; i < min_capacity; ++i)
 	{
-		if (data_[i] == integer.data_[i]) return false;
+		if (data_[i] != integer.data_[i]) return true;
 	}
 
 	const size_type other_capacity = std::max(capacity_, integer.capacity_) - min_capacity;
-	block_type* other_data = capacity_ > integer.capacity_ ? data_ : integer.data_;
+	block_type* other_data = (capacity_ > integer.capacity_ ? data_ : integer.data_) + min_capacity;
 	block_type* const other_data_end = other_data + other_capacity;
 
 	for (; other_data < other_data_end; ++other_data)
@@ -257,6 +257,290 @@ bool bigint::operator!=(const bigint& integer) const noexcept
 	}
 
 	return sign_ != integer.sign_;
+}
+bool bigint::operator>(const bigint& integer) const noexcept
+{
+	if (!capacity_)
+	{
+		if (!integer.capacity_ || integer.zero()) return false;
+		else return integer.sign_;
+	}
+	else if (!integer.capacity_)
+	{
+		if (zero()) return false;
+		else return !sign_;
+	}
+	else if (sign_ != integer.sign_)
+	{
+		const bool this_zero = zero();
+		const bool integer_zero = integer.zero();
+
+		if (!this_zero && !integer_zero) return sign_ < integer.sign_;
+		else if (this_zero && !integer_zero) return integer.sign_;
+		else if (!this_zero && integer_zero) return !sign_;
+		else return false;
+	}
+
+	const bigint* smaller;
+	const bigint* larger;
+
+	if (capacity_ >= integer.capacity_)
+	{
+		larger = this;
+		smaller = &integer;
+	}
+	else
+	{
+		larger = &integer;
+		smaller = this;
+	}
+
+	const size_type limit = smaller->capacity_;
+
+	bool result;
+
+	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
+	{
+		if (larger->data_[i])
+		{
+			result = larger == this;
+			goto exit;
+		}
+	}
+	
+	for (size_type i = limit - 1; i >= 0; --i)
+	{
+		if (data_[i] > integer.data_[i])
+		{
+			result = true;
+			goto exit;
+		}
+		else if (data_[i] < integer.data_[i])
+		{
+			result = false;
+			goto exit;
+		}
+		else if (i == 0)
+		{
+			return false;
+		}
+	}
+
+exit:
+	return sign_ ? !result : result;
+}
+bool bigint::operator>=(const bigint& integer) const noexcept
+{
+	if (!capacity_)
+	{
+		if (!integer.capacity_ || integer.zero()) return true;
+		else return integer.sign_;
+	}
+	else if (!integer.capacity_)
+	{
+		if (zero()) return true;
+		else return !sign_;
+	}
+	else if (sign_ != integer.sign_)
+	{
+		const bool this_zero = zero();
+		const bool integer_zero = integer.zero();
+
+		if (!this_zero && !integer_zero) return sign_ < integer.sign_;
+		else if (this_zero && !integer_zero) return integer.sign_;
+		else if (!this_zero && integer_zero) return !sign_;
+		else return true;
+	}
+
+	const bigint* smaller;
+	const bigint* larger;
+
+	if (capacity_ >= integer.capacity_)
+	{
+		larger = this;
+		smaller = &integer;
+	}
+	else
+	{
+		larger = &integer;
+		smaller = this;
+	}
+
+	const size_type limit = smaller->capacity_;
+
+	bool result;
+
+	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
+	{
+		if (larger->data_[i])
+		{
+			result = larger == this;
+			goto exit;
+		}
+	}
+
+	for (size_type i = limit - 1; i >= 0; --i)
+	{
+		if (data_[i] > integer.data_[i])
+		{
+			result = true;
+			goto exit;
+		}
+		else if (data_[i] < integer.data_[i])
+		{
+			result = false;
+			goto exit;
+		}
+		else if (i == 0)
+		{
+			return true;
+		}
+	}
+
+exit:
+	return sign_ ? !result : result;
+}
+bool bigint::operator<(const bigint& integer) const noexcept
+{
+	if (!capacity_)
+	{
+		if (!integer.capacity_ || integer.zero()) return false;
+		else return !integer.sign_;
+	}
+	else if (!integer.capacity_)
+	{
+		if (zero()) return false;
+		else return sign_;
+	}
+	else if (sign_ != integer.sign_)
+	{
+		const bool this_zero = zero();
+		const bool integer_zero = integer.zero();
+
+		if (!this_zero && !integer_zero) return sign_ > integer.sign_;
+		else if (this_zero && !integer_zero) return !integer.sign_;
+		else if (!this_zero && integer_zero) return sign_;
+		else return false;
+	}
+
+	const bigint* smaller;
+	const bigint* larger;
+
+	if (capacity_ >= integer.capacity_)
+	{
+		larger = this;
+		smaller = &integer;
+	}
+	else
+	{
+		larger = &integer;
+		smaller = this;
+	}
+
+	const size_type limit = smaller->capacity_;
+
+	bool result;
+
+	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
+	{
+		if (larger->data_[i])
+		{
+			result = smaller == this;
+			goto exit;
+		}
+	}
+
+	for (size_type i = limit - 1; i >= 0; --i)
+	{
+		if (data_[i] < integer.data_[i])
+		{
+			result = true;
+			goto exit;
+		}
+		else if (data_[i] > integer.data_[i])
+		{
+			result = false;
+			goto exit;
+		}
+		else if (i == 0)
+		{
+			return false;
+		}
+	}
+
+exit:
+	return sign_ ? !result : result;
+}
+bool bigint::operator<=(const bigint& integer) const noexcept
+{
+	if (!capacity_)
+	{
+		if (!integer.capacity_ || integer.zero()) return true;
+		else return !integer.sign_;
+	}
+	else if (!integer.capacity_)
+	{
+		if (zero()) return true;
+		else return sign_;
+	}
+	else if (sign_ != integer.sign_)
+	{
+		const bool this_zero = zero();
+		const bool integer_zero = integer.zero();
+
+		if (!this_zero && !integer_zero) return sign_ > integer.sign_;
+		else if (this_zero && !integer_zero) return !integer.sign_;
+		else if (!this_zero && integer_zero) return sign_;
+		else return true;
+	}
+
+	const bigint* smaller;
+	const bigint* larger;
+
+	if (capacity_ >= integer.capacity_)
+	{
+		larger = this;
+		smaller = &integer;
+	}
+	else
+	{
+		larger = &integer;
+		smaller = this;
+	}
+
+	const size_type limit = smaller->capacity_;
+
+	bool result;
+
+	for (size_type i = larger->capacity_ - 1; i >= limit; --i)
+	{
+		if (larger->data_[i])
+		{
+			result = smaller == this;
+			goto exit;
+		}
+	}
+
+	for (size_type i = limit - 1; i >= 0; --i)
+	{
+		if (data_[i] < integer.data_[i])
+		{
+			result = true;
+			goto exit;
+		}
+		else if (data_[i] > integer.data_[i])
+		{
+			result = false;
+			goto exit;
+		}
+		else if (i == 0)
+		{
+			return true;
+		}
+	}
+
+exit:
+	return sign_ ? !result : result;
 }
 bigint bigint::operator+(const bigint& integer) const
 {
