@@ -554,7 +554,7 @@ bigint& bigint::operator+=(const bigint& integer)
 	}
 	else
 	{
-		// TODO: sub_unsigned
+		sub_unsigned_(integer);
 	}
 
 	return *this;
@@ -734,38 +734,22 @@ void bigint::add_unsigned_(const bigint& integer)
 	}
 	else if (!integer.capacity_) return;
 
-	const bigint* smaller;
-	const bigint* larger;
-
-	if (capacity_ > integer.capacity_)
-	{
-		larger = this;
-		smaller = &integer;
-	}
-	else
-	{
-		larger = &integer;
-		smaller = this;
-	}
-
-	const size_type limit = smaller->capacity_;
+	const size_type limit = std::min(capacity_, integer.capacity_);
 
 	bool carry = false;
-	block_type preserved;
 
 	for (size_type i = 0; i < limit; ++i)
 	{
-		preserved = smaller->data_[i];
-		data_[i] = preserved + larger->data_[i] + carry;
-		carry = (data_[i] < preserved) || !(larger->data_[i] + 1);
+		data_[i] += integer.data_[i] + carry;
+		carry = (data_[i] < integer.data_[i]) || !(data_[i] + 1);
 	}
 
 	block_type* const old_data = data_;
 	const size_type old_capacity = capacity_;
 
-	if (capacity_ < larger->capacity_)
+	if (capacity_ < integer.capacity_)
 	{
-		capacity_ = (carry && larger->data_[larger->capacity_ - 1]) ? (larger->capacity_ + 1) : larger->capacity_;
+		capacity_ = (carry && integer.data_[integer.capacity_ - 1] == std::numeric_limits<block_type>::max()) ? (integer.capacity_ + 1) : integer.capacity_;
 		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * capacity_));
 
 		if (!data_)
@@ -776,9 +760,9 @@ void bigint::add_unsigned_(const bigint& integer)
 		}
 
 		data_[capacity_ - 1] = 0;
-		std::copy(data_ + limit, data_ + capacity_, larger->data_ + limit);
+		std::copy(data_ + limit, data_ + capacity_, integer.data_ + limit);
 	}
-	else if (carry)
+	else if (carry && data_[capacity_ - 1] == std::numeric_limits<block_type>::max())
 	{
 		capacity_ += 1;
 		data_ = reinterpret_cast<block_type*>(std::realloc(data_, sizeof(block_type) * capacity_));
