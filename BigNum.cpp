@@ -566,9 +566,28 @@ bigint& bigint::operator++()
 		for (size_type i = 0; i < capacity_; ++i)
 		{
 			data_[i] += 1 - (sign_ << 1);
-			if (data_[i]) break;
+			if (data_[i]) goto check_zero;
 		}
 
+		{
+			block_type* const old_data = data_;
+
+			capacity_ += 1;
+			data_ = reinterpret_cast<block_type*>(std::realloc(data_, capacity_ * sizeof(block_type)));
+
+			if (!data_)
+			{
+				capacity_ -= 1;
+				data_ = old_data;
+				throw std::bad_alloc();
+			}
+
+			data_[capacity_ - 1] = 1;
+
+			return *this;
+		}
+
+	check_zero:
 		if (sign_ && zero())
 		{
 			sign_ = false;
